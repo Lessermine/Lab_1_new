@@ -1,0 +1,88 @@
+---
+title: "Лабораторная работа 1"
+author: "Дымнич Алексей"
+date: "28 03 2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Вариант - 7
+Задача:
+
+Яндекс Маркет, Планшеты (Москва)
+
+```{r}
+library('rvest')
+
+# Ссылка на первую страницу с планшетами
+url.page.1 <- 'https://market.yandex.ru/catalog--planshety/18034185/list?cpa=0&hid=6427100&onstock=1&local-offers-first=0'
+# Ссылка на вторую страницу с планшетами
+url.page.2 <- 'https://market.yandex.ru/catalog--planshety/18034185/list?cpa=0&hid=6427100&onstock=1&page=2&local-offers-first=0' 
+
+webpage1 <- read_html(url.page.1)
+webpage2 <- read_html(url.page.2)
+
+# название планшета
+nazv.planshet <- c(webpage1 %>% html_nodes(".cLo1fZHm2y") %>% html_text, webpage2 %>% html_nodes(".cLo1fZHm2y") %>% html_text)
+
+# описание планшета
+opisanie.planshet <- c(webpage1 %>% html_nodes("._2_oj-OEI-o") %>% html_text, webpage2 %>% html_nodes("._2_oj-OEI-o") %>% html_text)
+
+# стоимость планшета
+cena.planshet <- c(webpage1 %>% html_nodes("._3f2ZtYT7NH") %>% html_text, webpage2 %>% html_nodes("._3f2ZtYT7NH") %>% html_text)
+
+
+cena.planshet <- as.numeric(gsub("[^[:digit:]]", "", cena.planshet))
+
+# функция перебора тегов внутри тегов более высокого уровня
+get_tags <- function(node){
+  # найти все теги с рейтингом
+  raw_data <- html_nodes(node, selector) %>% html_text
+  # значения нулевой длины меняем на пропуски
+  data_NAs <- ifelse(length(raw_data) == 0, NA, raw_data)
+}
+
+selector <- '._1iKHblnc3a'
+# рейтинг планшета
+rating.planshet <- c(sapply(html_nodes(webpage1, '._1B9w_GzQuM'), get_tags), sapply(html_nodes(webpage2, '._1B9w_GzQuM'), get_tags))
+rating.planshet <- as.numeric(rating.planshet)
+
+selector <- '.KdrkCVDrVm'
+
+# количество отзывов о планшете
+otzyv.planshet <- c(sapply(html_nodes(webpage1, '._1B9w_GzQuM'), get_tags), sapply(html_nodes(webpage2, '._1B9w_GzQuM'), get_tags))
+# Избавляемся от всего кроме чисел
+otzyv.planshet <- gsub("[^[:digit:]]", "", otzyv.planshet)
+# перевод в число
+otzyv.planshet <- as.numeric(otzyv.planshet)
+
+data.dir <- './data'
+
+# Создаём директорию для данных, если она ещё не существует:
+if (!file.exists(data.dir)) {
+  dir.create(data.dir)
+}
+
+# Создаём файл с логом загрузок, если он ещё не существует:
+log.filename <- './data/download.log'
+if (!file.exists(log.filename)) file.create(log.filename)
+
+DF <- data.frame(Nazv = nazv.planshet,
+                 Opisanie = opisanie.planshet,
+                 Cena = cena.planshet,
+                 Rating = rating.planshet,
+                 Otzyv = otzyv.planshet)
+
+DF
+
+# Записываем в .csv файл
+write.csv2(DF, file = './data/planshety.csv', row.names = F)
+
+# запись в лог файл
+write(paste('Файл "planshety.csv" создан:', Sys.time()), 
+      file = log.filename, append = T)
+```
+
